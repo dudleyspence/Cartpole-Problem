@@ -4,7 +4,7 @@ from collections import deque
 import warnings
 
 # imports the cartpole environment
-env=gym.make('CartPole-v1')
+env=gym.make('CartPole-v1', render_mode="rgb_array")
 
 def relu(mat):
     return np.multiply(mat,(mat>0))
@@ -75,6 +75,7 @@ class RLAgent:
                 
     def select_action(self, observation):
         # the action values accociated with that state
+
         values = self.forward(np.asmatrix(observation))
         # epsilon greedy
         if (np.random.random() > self.epsilon):
@@ -144,22 +145,29 @@ model = RLAgent(env)
 # The main program loop with NUM_EPISODES iterations
 for i_episode in range(NUM_EPISODES):
     # each episode the environment is reset
-    observation = env.reset()
+    #new version of gym returns 2 values [obs, info]
+    observation = env.reset()[0]
+    
     # Iterating through time steps within an episode
     for t in range(MAX_TIMESTEPS):
         env.render()
+
         # provides model with observation to select an action
         action = model.select_action(observation)
         #stores the previous observation in prev_observation
         prev_obs = observation
+
         # takes the action selected by the Agent and applies it to the environment
-        observation, reward, done, info = env.step(action)
+        observation, reward, termination, truncation, info = env.step(action)
+        
         # Keep a store of the agent's experiences
-        model.remember(done, action, observation, prev_obs)
+        model.remember(termination, action, observation, prev_obs)
         model.experience_replay(20)
+
         # epsilon decay
         model.epsilon = model.epsilon if model.epsilon < 0.01 else model.epsilon*0.995
-        if done:
+
+        if termination:
             # If the pole has tipped over, end this episode
             print('Episode {} ended after {} timesteps, current exploration is {}'.format(i_episode+1, t+1,model.epsilon))
             print(model.layers[0].lr)
